@@ -1,0 +1,18 @@
+/**
+  fonts scss
+**/
+
+@import './fonts/OpenSans/stylesheet.scss';
+
+/**
+  base scss
+**/
+@import './scss/base.scss';
+@import './scss/home.scss';
+
+/**
+  components scss
+**/
+
+@import './scss/components/button.scss';
+@import './scss/components/sponsors.scss';
