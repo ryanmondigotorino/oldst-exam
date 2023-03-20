@@ -1,7 +1,9 @@
 html,
 body,
 main {
-  height: calc(100vh - 8.875rem);
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 body {

@@ -123,7 +123,7 @@ const App = () => {
   }, [items, loading]);
 
   return (
-    <main>
+    <main id="product-list">
       <Header />
       <div className="content">
         <div className="container">
@@ -147,9 +147,7 @@ const App = () => {
               )}
             </div>
           )}
-        </div>
-        <div id="product-list" className="product-list">
-          <div className="container">
+          <div className="product-list">
             <div className="grid">
               {items?.map((item) => (
                 <div key={item?.id} className="card">
@@ -166,25 +164,20 @@ const App = () => {
                 </div>
               ))}
             </div>
-            {!loading && (
-              <div id="detector" style={{ height: 1 }} />
-            )}
-            {(loading || lastPage) && (
-              <div className={clsx('loading--container', { relative: lastPage })}>
-                <div className="loading--container__label">
-                  {!lastPage && <Spinner />}
-                  <p>{lastPage ? '~ End of catalogue ~' : 'Loading...' }</p>
-                </div>
-              </div>
-            )}
           </div>
-          {!initialLoad && items.length ? (
-            <footer className="footer">
-              <p>&copy; Created by: Ryan M. Torino</p>
-            </footer>
-          ) : <></>}
+          {!loading && (
+            <div id="detector" style={{ height: 1 }} />
+          )}
         </div>
-      </div>
+        {(loading || lastPage) && (
+          <div className={clsx('loading--container')}>
+            <div className="loading--container__label">
+              {!lastPage && <Spinner />}
+              <p>{lastPage ? '~ End of catalogue ~' : 'Loading...' }</p>
+            </div>
+          </div>
+        )}
+      </div>  
     </main>
   );
 };
