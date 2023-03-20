@@ -16,3 +16,17 @@
 
 @import './scss/components/button.scss';
 @import './scss/components/sponsors.scss';
+@import './scss/components/spinner.scss';
+
+.button-transparent {
+  background-color: transparent;
+  width: max-content;
+  border: none;
+  color: inherit;
+  font-size: inherit;
+  padding: 0;
+  margin: 0;
+  &:focus {
+    outline: none;
+  }
+}

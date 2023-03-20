@@ -5,6 +5,10 @@ import clsx from 'clsx';
 import Header from './components/Header';
 import Button from './components/Button';
 import Sponsors from './components/Sponsors';
+import Spinner from './components/Spinner';
+import { uniqBy } from 'lodash';
+
+import { formatMoney, formatDate } from './utils';
 
 // Utilities
 import { api } from './utils/api';
@@ -17,17 +21,33 @@ import { api } from './utils/api';
 
 const App = () => {
   const [loading, setLoading] = React.useState(false);
-  const [items, setItems] = React.useState([]);
   const [lastPage, setLastPage] = React.useState(false);
   const [initialLoad, setInitialLoad] = React.useState(true);
+
+  const [items, setItems] = React.useState([]);
+  const [nextItems, setNextItems] = React.useState([]);
+  const [nextPage, setNextPage] = React.useState(0);
+
+  const [activeSort, setActiveSort] = React.useState('title');
+  const [dropdown, setDropdown] = React.useState(false);
 
   const [activeAds, setActiveAds] = React.useState([]);
 
   const [params, setParams] = React.useState({
-    _limit: null,
+    _limit: 10,
     _page: 1,
-    _sort: null,
   });
+
+  const filterSort = async (type) => {
+    setItems([]);
+    setActiveSort(type);
+    setDropdown(false);
+    setLastPage(false);
+    setActiveAds([]);
+    setNextPage(2);
+    setNextItems([]);
+    setParams((curr) => ({ ...curr, _page: 1, _sort: type }));
+  }
 
   const sectionObserver = React.useCallback(() => {
     if (!initialLoad) {
@@ -41,7 +61,10 @@ const App = () => {
         const observer = new IntersectionObserver((entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              setParams((curr) => ({ ...curr, _page: curr._page + 1}))
+              setParams((curr) => {
+                setNextPage((curr._page + 1) + 1);
+                return { ...curr, _page: curr._page + 1 };
+              });
             }
           });
         }, options);
@@ -51,35 +74,44 @@ const App = () => {
   }, [initialLoad]);
 
   React.useEffect(() => {
-    sectionObserver();
-  }, [sectionObserver]);
+    if (!loading) sectionObserver();
+  }, [sectionObserver, loading]);
 
   React.useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const { data: productsData } = await api().get('/products', { params: { ...params } });
+
+        if (initialLoad) {
+          const { data: productsData } = await api().get('/products', { params: { ...params } });
+          setItems((data) => ([...data, ...productsData]));
+        } else {
+          setItems((data) => (uniqBy([...data, ...nextItems], (v) => v.id)));
+        }
+        const { data: productsData } = await api().get('/products', { params: { ...params, _page: nextPage || 2 } });
         if (productsData.length <= 0) {
           setLastPage(true)
         } else {
-          setItems((data) => ([...data, ...productsData]));
+          setNextItems(productsData)
         }
+
         setLoading(false);
         if (initialLoad) setInitialLoad(false);
       } catch {
         console.error('Error Fetching products')
       }
     };
-
+    
     if (!lastPage) {
       fetchProducts();
     }
-  }, [params, lastPage]);
+  }, [params, lastPage, nextPage]);
+
 
   React.useEffect(() => {
     const randomNum = Math.floor(Math.random()*1000);
 
-    if (items.length >= 20 && (items.length / 20) % 1 === 0) {
+    if (items.length >= 20 && (items.length / 20) % 1 === 0 && !loading) {
       setActiveAds((curr) => {
         if (curr.includes(randomNum)) {
           return [...curr, Math.floor(Math.random()*1000)];
@@ -88,9 +120,7 @@ const App = () => {
         }
       })
     }
-  }, [items]);
-
-  console.log({ activeAds })
+  }, [items, loading]);
 
   return (
     <main>
@@ -101,7 +131,20 @@ const App = () => {
           {!initialLoad && (
             <div className="filter-menu">
               <p className="mr-2">Sort by:</p>
-              <Button type="button" label="Price" />
+              <Button type="button" label={activeSort} onClick={() => setDropdown(!dropdown)} />
+              {dropdown && (
+                <ul className="filter-dropdown">
+                  <li className="filter-dropdown--list" role="button" onClick={() => filterSort('title')}>
+                    Title
+                  </li>
+                  <li className="filter-dropdown--list" role="button" onClick={() => filterSort('price')}>
+                    Price
+                  </li>
+                  <li className="filter-dropdown--list" role="button" onClick={() => filterSort('rating')}>
+                    Rating
+                  </li>
+                </ul>
+              )}
             </div>
           )}
         </div>
@@ -116,27 +159,30 @@ const App = () => {
                   <div className="card--content justify-between">
                     <div className="flex flex-col">
                       <h2 className="mb-2">{item?.title || ''}</h2>
-                      <p className="mb-1">{item?.price || ''}</p>
+                      <p className="mb-1">{`Price: ${item?.price ? `$${formatMoney(item?.price)}` : ''}`}</p>
                     </div>
-                    <p className="mb-1 text-end">Posted: 2 days ago</p>
+                    <p className="mb-1 text-end">Posted: {formatDate(item?.date)}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <div id="detector" style={{ height: 1 }} />
+            {!loading && (
+              <div id="detector" style={{ height: 1 }} />
+            )}
             {(loading || lastPage) && (
               <div className={clsx('loading--container', { relative: lastPage })}>
                 <div className="loading--container__label">
-                  <p>{lastPage ? 'End of Result' : 'Loading Products...' }</p>
+                  {!lastPage && <Spinner />}
+                  <p>{lastPage ? '~ End of catalogue ~' : 'Loading...' }</p>
                 </div>
               </div>
             )}
           </div>
-          {!initialLoad && (
+          {!initialLoad && items.length ? (
             <footer className="footer">
               <p>&copy; Created by: Ryan M. Torino</p>
             </footer>
-          )}
+          ) : <></>}
         </div>
       </div>
     </main>
